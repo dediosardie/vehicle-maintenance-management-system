@@ -17,6 +17,9 @@ export function usePageAccess() {
         return;
       }
 
+      // Set loading to true when refetching (e.g., role change)
+      setLoading(true);
+
       try {
         const accessiblePages = await pageRestrictionService.getAccessiblePagesByRole(userRole.role);
         const accessMap = new Map<string, boolean>();
@@ -39,14 +42,34 @@ export function usePageAccess() {
 
   /**
    * Check if user has access to a specific page path
+   * PRIMARY ACCESS CONTROL - page_restrictions table is authoritative
    */
   function hasPageAccess(pagePath: string): boolean {
-    // If not loaded yet or no restrictions found, allow access (fail-open)
-    if (loading || pageAccessMap.size === 0) {
+    // Still loading page access OR role data - allow access temporarily
+    // ProtectedRoute will handle the actual loading state display
+    // This prevents flash of AccessDenied during initial load or page transitions
+    if (loading || !userRole) {
       return true;
     }
     
-    return pageAccessMap.get(pagePath) === true;
+    // No restrictions configured - allow access to dashboard only
+    // Admin must configure page_restrictions for other pages
+    if (pageAccessMap.size === 0) {
+      console.warn('⚠️ No page restrictions configured in database.');
+      // Allow only dashboard when no restrictions exist
+      return pagePath === '/dashboard';
+    }
+    
+    // Check if page is explicitly allowed in database
+    const hasAccess = pageAccessMap.get(pagePath);
+    
+    // If page not in database, deny access (fail-closed)
+    if (hasAccess === undefined) {
+      console.warn(`⚠️ Page "${pagePath}" not found in page_restrictions. Access denied.`);
+      return false;
+    }
+    
+    return hasAccess === true;
   }
 
   /**

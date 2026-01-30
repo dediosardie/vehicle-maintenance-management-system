@@ -307,10 +307,21 @@ function App() {
     )},
   ];
 
-  // Filter nav items based on role access and page restrictions
-  const accessibleNavItems = navItems.filter(item => 
-    hasModuleAccess(item.module) && hasPageAccess(item.path)
-  );
+  // Filter nav items based on page_restrictions (PRIMARY) from database
+  // page_restrictions table is the authoritative source for access control
+  const accessibleNavItems = navItems.filter(item => {
+    // PRIMARY: Check database page restrictions (authoritative)
+    const pageAllowed = hasPageAccess(item.path);
+    
+    if (!pageAllowed) {
+      return false; // Database denied access
+    }
+    
+    // SECONDARY: Module access check (defense in depth)
+    const moduleAllowed = hasModuleAccess(item.module);
+    
+    return pageAllowed && moduleAllowed;
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -353,7 +364,7 @@ function App() {
           </div>
 
           {/* Center: Search */}
-          <div className="hidden md:flex flex-1 max-w-md mx-4">
+{/*           <div className="hidden md:flex flex-1 max-w-md mx-4">
             <div className="relative w-full">
               <input
                 type="search"
@@ -364,7 +375,7 @@ function App() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-          </div>
+          </div> */}
 
           {/* Right: Notifications + Profile */}
           <div className="flex items-center gap-2">

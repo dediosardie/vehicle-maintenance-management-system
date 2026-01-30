@@ -177,6 +177,7 @@ export const ROLE_MODULE_ACCESS: Record<UserRole, Module[]> = {
     'analytics',
   ],
   maintenance_team: [
+    'reports',
     'vehicles',
     'maintenance',
     'incidents',

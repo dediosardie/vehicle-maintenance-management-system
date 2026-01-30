@@ -43,18 +43,21 @@ export function ProtectedRoute({
     return fallback;
   }
 
-  // Check page-level restrictions using cached data (instant, no flash)
+  // PRIMARY: Check page-level restrictions from database (authoritative)
   if (pagePath && !checkPageAccess(pagePath)) {
+    console.warn(`🔒 Access denied to page: ${pagePath} (page_restrictions)`);
     return fallback;
   }
 
-  // Check permission
+  // SECONDARY: Check permission (additional validation)
   if (requiredPermission && !hasPermission(requiredPermission)) {
+    console.warn(`🔒 Access denied: missing permission ${requiredPermission}`);
     return fallback;
   }
 
-  // Check module access
+  // SECONDARY: Check module access (additional validation)
   if (requiredModule && !hasModuleAccess(requiredModule)) {
+    console.warn(`🔒 Access denied to module: ${requiredModule}`);
     return fallback;
   }
 
