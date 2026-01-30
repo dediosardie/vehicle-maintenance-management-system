@@ -50,9 +50,14 @@ export default function UserForm({ onSave, onUpdate, initialData }: UserFormProp
     e.preventDefault();
     
     if (initialData && onUpdate) {
+      // For updates, only include password if it was changed
+      const updateData = { ...formData };
+      if (!updateData.password || updateData.password.trim() === '') {
+        delete updateData.password;
+      }
       onUpdate({
         ...initialData,
-        ...formData,
+        ...updateData,
       });
     } else {
       onSave(formData);
@@ -97,26 +102,26 @@ export default function UserForm({ onSave, onUpdate, initialData }: UserFormProp
           <p className="mt-1 text-xs text-slate-500">Will be used for authentication</p>
         </div>
 
-        {/* Password - Only for new users */}
-        {!initialData && (
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
-              Password <span className="text-red-600">*</span>
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required={!initialData}
-              minLength={6}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
-              placeholder="Minimum 6 characters"
-            />
-            <p className="mt-1 text-xs text-slate-500">User will use this password to log in</p>
-          </div>
-        )}
+        {/* Password */}
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
+            Password {!initialData && <span className="text-red-600">*</span>}
+          </label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            required={!initialData}
+            minLength={6}
+            className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            placeholder={initialData ? "Leave blank to keep current password" : "Minimum 6 characters"}
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            {initialData ? "Leave blank to keep the current password unchanged" : "User will use this password to log in"}
+          </p>
+        </div>
 
         {/* Role */}
         <div>
