@@ -122,6 +122,7 @@ export function ConditionalRender({
 
 /**
  * ACCESS DENIED SCREEN
+ * This component is shown when access is denied, but App.tsx handles automatic redirects
  */
 function AccessDenied() {
   const { getRoleDescription } = useRoleAccess();
@@ -179,6 +180,10 @@ function AccessDenied() {
               </div>
             </div>
           )}
+
+          <p className="text-sm text-gray-500 mb-4">
+            You will be automatically redirected to your default page.
+          </p>
 
           <button
             onClick={() => window.history.back()}

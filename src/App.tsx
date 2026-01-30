@@ -19,6 +19,7 @@ import { useRoleAccess } from './hooks/useRoleAccess';
 import { usePageAccess } from './hooks/usePageAccess';
 import { authService } from './services/authService';
 import { Module } from './config/rolePermissions';
+import { getRoleDefaultPage, checkRoleAccess } from './utils/roleRedirects';
 
 type ActiveModule = 'vehicles' | 'drivers' | 'maintenance' | 'trips' | 'fuel' | 'incidents' | 'compliance' | 'disposal' | 'reporting' | 'users' | 'page_restrictions';
 
@@ -97,6 +98,66 @@ function App() {
       unsubscribe();
     };
   }, []);
+
+  // Role-based redirect on login
+  useEffect(() => {
+    if (!authLoading && !roleLoading && user && userRole) {
+      // Get the appropriate module for the user's role
+      const defaultPage = getRoleDefaultPage(userRole.role);
+      
+      // Map paths to activeModule values
+      const pathToModule: Record<string, ActiveModule> = {
+        '/dashboard': 'reporting',
+        '/trips': 'trips',
+        '/vehicles': 'vehicles',
+      };
+
+      const targetModule = pathToModule[defaultPage];
+      if (targetModule && activeModule !== targetModule) {
+        setActiveModule(targetModule);
+      }
+    }
+  }, [authLoading, roleLoading, user, userRole]);
+
+  // Check and enforce role-based access for current active module
+  useEffect(() => {
+    if (!authLoading && !roleLoading && !pageAccessLoading && user && userRole) {
+      // Map activeModule to paths
+      const moduleToPat: Record<ActiveModule, string> = {
+        'reporting': '/dashboard',
+        'vehicles': '/vehicles',
+        'drivers': '/drivers',
+        'trips': '/trips',
+        'fuel': '/fuel',
+        'incidents': '/incidents',
+        'compliance': '/compliance',
+        'disposal': '/disposal',
+        'maintenance': '/maintenance',
+        'users': '/users',
+        'page_restrictions': '/page-restrictions',
+      };
+
+      const currentPath = moduleToPat[activeModule];
+      const redirectPath = checkRoleAccess(userRole.role, currentPath);
+
+      if (redirectPath && redirectPath !== currentPath) {
+        // Find the module that corresponds to the redirect path
+        const redirectModule = Object.entries(moduleToPat).find(
+          ([, path]) => path === redirectPath
+        )?.[0] as ActiveModule | undefined;
+
+        if (redirectModule && redirectModule !== activeModule) {
+          setActiveModule(redirectModule);
+          
+          // Show notification about redirect
+          notificationService.warning(
+            'Access Denied',
+            `You don't have access to that page. Redirected to your default page.`
+          );
+        }
+      }
+    }
+  }, [activeModule, authLoading, roleLoading, pageAccessLoading, user, userRole]);
 
   const handleSignOut = async () => {
     await authService.signOut();

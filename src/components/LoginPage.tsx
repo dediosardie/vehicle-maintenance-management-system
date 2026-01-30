@@ -50,6 +50,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
           setError(signInError || 'Failed to sign in');
         } else if (user) {
           console.log('Login successful, calling onLoginSuccess');
+          // App.tsx will handle role-based redirection via useEffect
           onLoginSuccess();
         } else {
           console.error('No user or error returned from signIn');
