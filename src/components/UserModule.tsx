@@ -181,8 +181,8 @@ export default function UserModule() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600">Admins</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{users.filter(u => u.role === 'admin').length}</p>
+              <p className="text-sm font-medium text-slate-600">Administrators</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{users.filter(u => u.role === 'administration').length}</p>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
