@@ -1,19 +1,20 @@
 // Trip Form Component - Defined per trip-scheduling-module.md
 import React, { useState, useEffect } from 'react';
-import { Trip, Vehicle, Driver } from '../types';import { Input, Select, Textarea, Button } from './ui';
+import { Trip, Vehicle, Driver, Maintenance } from '../types';import { Input, Select, Textarea, Button } from './ui';
 interface TripFormProps {
   onSave: (trip: Omit<Trip, 'id' | 'created_at' | 'updated_at'>) => void;
   onUpdate?: (trip: Trip) => void;
   initialData?: Trip;
   vehicles: Vehicle[];
   drivers: Driver[];
+  maintenances: Maintenance[];
 }
 
 // TODO: Replace with your Google Maps API key
 // Get your API key from: https://console.cloud.google.com/google/maps-apis
 const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY_HERE';
 
-export default function TripForm({ onSave, onUpdate, initialData, vehicles, drivers }: TripFormProps) {
+export default function TripForm({ onSave, onUpdate, initialData, vehicles, drivers, maintenances }: TripFormProps) {
   const [formData, setFormData] = useState<Omit<Trip, 'id' | 'created_at' | 'updated_at'>>({
     vehicle_id: initialData?.vehicle_id || '',
     driver_id: initialData?.driver_id || '',
@@ -32,9 +33,33 @@ export default function TripForm({ onSave, onUpdate, initialData, vehicles, driv
 
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
   const [distanceError, setDistanceError] = useState<string | null>(null);
+  const [maintenanceWarning, setMaintenanceWarning] = useState<string | null>(null);
 
   // Filter: only active vehicles per business rules
-  const activeVehicles = vehicles.filter(v => v.status === 'active');
+  const activeVehicles = vehicles.filter(v => v.status !== 'disposed');
+
+  // Check for maintenance conflicts
+  useEffect(() => {
+    if (!formData.vehicle_id || !formData.planned_departure) {
+      setMaintenanceWarning(null);
+      return;
+    }
+
+    const departureDate = new Date(formData.planned_departure).toISOString().split('T')[0];
+    const vehicleMaintenance = maintenances.find(
+      m => m.vehicle_id === formData.vehicle_id && 
+           m.status === 'pending' && 
+           m.scheduled_date === departureDate
+    );
+
+    if (vehicleMaintenance) {
+      setMaintenanceWarning(
+        `⚠️ Warning: This vehicle has scheduled ${vehicleMaintenance.maintenance_type} maintenance on ${vehicleMaintenance.scheduled_date}`
+      );
+    } else {
+      setMaintenanceWarning(null);
+    }
+  }, [formData.vehicle_id, formData.planned_departure, maintenances]);
 
   // Auto-calculate distance when origin and destination are provided
   useEffect(() => {
@@ -146,6 +171,16 @@ export default function TripForm({ onSave, onUpdate, initialData, vehicles, driv
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {maintenanceWarning && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg">
+          <div className="flex items-start">
+            <svg className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm font-medium">{maintenanceWarning}</span>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-6">
         {/* Vehicle (select, required, from active vehicles) */}
         <div>

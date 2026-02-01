@@ -606,7 +606,7 @@ function App() {
               )}
               <div className="space-y-1">
                 {accessibleNavItems
-                  .filter(item => ['reporting', 'vehicles', 'drivers', 'trips', 'users', 'page_restrictions'].includes(item.id))
+                  .filter(item => ['reporting', 'vehicles', 'drivers', 'trips', 'maintenance', 'fuel', 'incidents', 'compliance', 'disposal'].includes(item.id))
                   .map((item) => (
                     <button
                       key={item.id}
@@ -634,12 +634,12 @@ function App() {
               </div>
             </div>
 
-            {/* Maintenance Section */}
-            {accessibleNavItems.some(item => ['maintenance', 'fuel', 'incidents', 'compliance', 'disposal'].includes(item.id)) && (
+            {/* Administration Section */}
+            {accessibleNavItems.some(item => ['users', 'page_restrictions'].includes(item.id)) && (
               <div>
                 {isSidebarExpanded && (
                   <div className="px-3 mb-2 pt-2 border-t border-border-muted">
-                    <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Maintenance</h3>
+                    <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Administration</h3>
                   </div>
                 )}
                 {!isSidebarExpanded && (
@@ -647,7 +647,7 @@ function App() {
                 )}
                 <div className="space-y-1">
                   {accessibleNavItems
-                    .filter(item => ['maintenance', 'fuel', 'incidents', 'compliance', 'disposal'].includes(item.id))
+                    .filter(item => ['users', 'page_restrictions'].includes(item.id))
                     .map((item) => (
                       <button
                         key={item.id}
@@ -706,7 +706,13 @@ function App() {
             )}
             {activeModule === 'maintenance' && (
               <ProtectedRoute pagePath="/maintenance">
-                <MaintenanceModule vehicles={vehicles.map(v => ({ id: v.id, plate_number: v.plate_number }))} />
+                <MaintenanceModule vehicles={vehicles.map(v => ({ 
+                  id: v.id, 
+                  plate_number: v.plate_number, 
+                  conduction_number: v.conduction_number,
+                  model: v.model,
+                  make: v.make
+                }))} />
               </ProtectedRoute>
             )}
             {activeModule === 'trips' && (

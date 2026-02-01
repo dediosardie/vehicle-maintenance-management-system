@@ -14,9 +14,10 @@ interface MaintenanceTableProps {
   vehicles: Array<{ id: string; plate_number: string; conduction_number?: string }>;
   onMarkCompleted: (id: string) => void;
   onEdit: (maintenance: Maintenance) => void;
+  onDelete: (id: string) => void;
 }
 
-export default function MaintenanceTable({ maintenances, vehicles, onMarkCompleted, onEdit }: MaintenanceTableProps) {
+export default function MaintenanceTable({ maintenances, vehicles, onMarkCompleted, onEdit, onDelete }: MaintenanceTableProps) {
   const getVehiclePlate = (vehicleId: string) => {
     const vehicle = vehicles.find(v => v.id === vehicleId);
     return vehicle ? `${vehicle.plate_number}${(vehicle as any).conduction_number ? ` (${(vehicle as any).conduction_number})` : ''}` : 'N/A';
@@ -110,6 +111,17 @@ export default function MaintenanceTable({ maintenances, vehicles, onMarkComplet
                         Complete
                       </Button>
                     )}
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(maintenance.id);
+                      }}
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Delete
+                    </Button>
                   </div>
                 </td>
               </tr>

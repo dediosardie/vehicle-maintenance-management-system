@@ -39,7 +39,7 @@ export default function DriverModule() {
   const handleSaveDriver = async (driverData: Omit<Driver, 'id'>) => {
     const newDriver: Driver = {
       ...driverData,
-      id: crypto.randomUUID(),
+      id: self.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
     try {
       await driverStorage.save(newDriver);

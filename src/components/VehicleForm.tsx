@@ -6,9 +6,10 @@ interface VehicleFormProps {
   onSave: (vehicle: Omit<Vehicle, 'id'>) => void;
   onUpdate?: (vehicle: Vehicle) => void;
   initialData?: Vehicle;
+  viewOnly?: boolean;
 }
 
-export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFormProps) {
+export default function VehicleForm({ onSave, onUpdate, initialData, viewOnly = false }: VehicleFormProps) {
   const [formData, setFormData] = useState<Omit<Vehicle, 'id'>>({
     plate_number: initialData?.plate_number || '',
     conduction_number: initialData?.conduction_number || '',
@@ -140,6 +141,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (viewOnly) return;
     if (initialData && onUpdate) {
       onUpdate({ 
         ...formData, 
@@ -162,6 +164,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
           value={formData.plate_number}
           onChange={handleChange}
           required
+          disabled={viewOnly}
         />
 
         <Input
@@ -171,6 +174,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
           value={formData.conduction_number}
           onChange={handleChange}
           helperText="(Use when plate not available)"
+          disabled={viewOnly}
         />
 
         <Input
@@ -180,6 +184,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
           value={formData.make}
           onChange={handleChange}
           required
+          disabled={viewOnly}
         />
 
         <Input
@@ -189,6 +194,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
           value={formData.model}
           onChange={handleChange}
           required
+          disabled={viewOnly}
         />
 
         <Input
@@ -198,6 +204,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
           value={formData.variant || ''}
           onChange={handleChange}
           placeholder="e.g., Sport, Deluxe, Base"
+          disabled={viewOnly}
         />
 
         <Input
@@ -207,6 +214,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
           value={formData.year}
           onChange={handleChange}
           required
+          disabled={viewOnly}
         />
 
         <Input
@@ -216,6 +224,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
           value={formData.vin}
           onChange={handleChange}
           required
+          disabled={viewOnly}
         />
 
         <Input
@@ -224,6 +233,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
           name="engine_number"
           value={formData.engine_number || ''}
           onChange={handleChange}
+          disabled={viewOnly}
         />
 
         <Input
@@ -235,6 +245,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
           step="0.1"
           min="0"
           placeholder="e.g., 60"
+          disabled={viewOnly}
         />
 
         <Select
@@ -248,6 +259,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
             { value: 'Leased to Own', label: 'Leased to Own' },
             { value: 'Shuttle', label: 'Shuttle' }
           ]}
+          disabled={viewOnly}
         />
 
         <Select
@@ -260,6 +272,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
             { value: 'maintenance', label: 'maintenance' },
             { value: 'disposed', label: 'disposed' }
           ]}
+          disabled={viewOnly}
         />
 
         <Input
@@ -268,6 +281,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
           name="insurance_expiry"
           value={formData.insurance_expiry}
           onChange={handleChange}
+          disabled={viewOnly}
         />
 
         <div>
@@ -280,6 +294,7 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
             helperText="Auto-calculated by LTO rules"
             className="bg-bg-elevated"
             title="Automatically calculated based on plate number and vehicle age"
+            disabled={viewOnly}
           />
           {formData.plate_number && formData.year && formData.registration_expiry && (
             <p className="text-xs text-emerald-500 mt-1">
@@ -289,11 +304,23 @@ export default function VehicleForm({ onSave, onUpdate, initialData }: VehicleFo
         </div>
       </div>
 
-      <div className="mt-6 pt-6 border-t border-border-muted flex justify-end gap-3">
-        <Button type="submit" variant="primary">
-          {initialData ? 'Update Vehicle' : 'Save Vehicle'}
-        </Button>
-      </div>
+      {!viewOnly && (
+        <div className="mt-6 pt-6 border-t border-border-muted flex justify-end gap-3">
+          <Button type="submit" variant="primary">
+            {initialData ? 'Update Vehicle' : 'Save Vehicle'}
+          </Button>
+        </div>
+      )}
+      {viewOnly && (
+        <div className="mt-6 pt-6 border-t border-border-muted">
+          <p className="text-sm text-text-secondary text-center">
+            <svg className="inline-block w-4 h-4 mr-2 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            This vehicle was disposed and cannot be edited
+          </p>
+        </div>
+      )}
     </form>
   );
 }

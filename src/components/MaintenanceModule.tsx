@@ -7,9 +7,10 @@ import { Card, Button } from './ui';
 import { maintenanceStorage } from '../storage';
 import { notificationService } from '../services/notificationService';
 import { auditLogService } from '../services/auditLogService';
+import { vehicleService } from '../services/supabaseService';
 
 interface MaintenanceModuleProps {
-  vehicles: Array<{ id: string; plate_number: string; conduction_number?: string }>;
+  vehicles: Array<{ id: string; plate_number: string; conduction_number?: string; model: string; make: string }>;
 }
 
 export default function MaintenanceModule({ vehicles }: MaintenanceModuleProps) {
@@ -41,22 +42,34 @@ export default function MaintenanceModule({ vehicles }: MaintenanceModuleProps) 
   }, [maintenances]);
 
   const handleScheduleMaintenance = async (maintenanceData: Omit<Maintenance, 'id'>) => {
-    const newMaintenance: Maintenance = {
-      ...maintenanceData,
-      id: crypto.randomUUID(),
-    };
     try {
-      await maintenanceStorage.save(newMaintenance);
-      setMaintenances([...maintenances, newMaintenance]);
+      const newMaintenance = await maintenanceStorage.save(maintenanceData);
+      
+      // Add new maintenance to state to refresh table
+      setMaintenances(prev => [...prev, newMaintenance]);
+      
+      // Update vehicle status to "maintenance"
+      try {
+        await vehicleService.update(newMaintenance.vehicle_id, { status: 'maintenance' });
+        
+        // Dispatch event to update vehicles in other components
+        window.dispatchEvent(new CustomEvent('maintenanceStatusChanged', { 
+          detail: { vehicleId: newMaintenance.vehicle_id, status: 'maintenance' }
+        }));
+      } catch (vehicleError: any) {
+        console.error('Failed to update vehicle status:', vehicleError);
+        // Continue with success notification even if vehicle update fails
+      }
+      
       setIsModalOpen(false);
       
       notificationService.success(
         'Maintenance Scheduled',
-        `${newMaintenance.maintenance_type} scheduled for vehicle ${newMaintenance.vehicle_id}`
+        `${newMaintenance.maintenance_type} scheduled and vehicle marked as under maintenance`
       );
       await auditLogService.createLog(
         'Maintenance Scheduled',
-        `Scheduled ${newMaintenance.maintenance_type} for ${newMaintenance.scheduled_date}`
+        `Scheduled ${newMaintenance.maintenance_type} for ${newMaintenance.scheduled_date} and updated vehicle status to maintenance`
       );
     } catch (error) {
       console.error('Failed to schedule maintenance:', error);
@@ -97,18 +110,60 @@ export default function MaintenanceModule({ vehicles }: MaintenanceModuleProps) 
         m.id === id ? { ...m, status: 'completed' as const } : m
       ));
       
+      // Update vehicle status back to "active" when maintenance is completed
+      if (maintenance) {
+        try {
+          await vehicleService.update(maintenance.vehicle_id, { status: 'active' });
+          
+          // Dispatch event to update vehicles in other components
+          window.dispatchEvent(new CustomEvent('maintenanceStatusChanged', { 
+            detail: { vehicleId: maintenance.vehicle_id, status: 'active' }
+          }));
+        } catch (vehicleError: any) {
+          console.error('Failed to update vehicle status:', vehicleError);
+          // Continue with success notification even if vehicle update fails
+        }
+      }
+      
       notificationService.success(
         'Maintenance Completed',
-        `${maintenance?.maintenance_type || 'Service'} has been marked as completed`
+        `${maintenance?.maintenance_type || 'Service'} has been marked as completed and vehicle returned to active status`
       );
       await auditLogService.createLog(
         'Maintenance Completed',
-        `Completed ${maintenance?.maintenance_type} maintenance`
+        `Completed ${maintenance?.maintenance_type} maintenance and updated vehicle status to active`
       );
     } catch (error) {
       console.error('Failed to mark maintenance as completed:', error);
       notificationService.error('Failed to Complete', 'Unable to mark as completed. Please try again.');
       alert('Failed to mark maintenance as completed. Please try again.');
+    }
+  };
+
+  const handleDeleteMaintenance = async (id: string) => {
+    const maintenance = maintenances.find(m => m.id === id);
+    if (!maintenance) return;
+
+    if (!confirm(`Are you sure you want to delete this ${maintenance.maintenance_type} maintenance record?`)) {
+      return;
+    }
+
+    try {
+      await maintenanceStorage.delete(id);
+      setMaintenances(prev => prev.filter(m => m.id !== id));
+      
+      notificationService.success(
+        'Maintenance Deleted',
+        'Maintenance record has been successfully deleted'
+      );
+      await auditLogService.createLog(
+        'Maintenance Deleted',
+        `Deleted ${maintenance.maintenance_type} maintenance record for vehicle ${maintenance.vehicle_id}`
+      );
+    } catch (error) {
+      console.error('Failed to delete maintenance:', error);
+      notificationService.error('Failed to Delete', 'Unable to delete maintenance record. Please try again.');
+      alert('Failed to delete maintenance. Please try again.');
     }
   };
 
@@ -206,6 +261,7 @@ export default function MaintenanceModule({ vehicles }: MaintenanceModuleProps) 
               vehicles={vehicles}
               onMarkCompleted={handleMarkCompleted}
               onEdit={handleEditMaintenance}
+              onDelete={handleDeleteMaintenance}
             />
           </div>
         )}

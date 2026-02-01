@@ -102,7 +102,7 @@ export default function VehicleTable({ vehicles, onDispose, onEdit }: VehicleTab
             </TableCell>
             <TableCell>
               <Badge variant={
-                vehicle.status === 'disposed' ? 'warning' :
+                vehicle.status === 'disposed' ? 'danger' :
                 vehicle.status === 'active' ? 'success' :
                 vehicle.status === 'maintenance' ? 'warning' :
                 'default'
@@ -117,20 +117,24 @@ export default function VehicleTable({ vehicles, onDispose, onEdit }: VehicleTab
               {vehicle.registration_expiry}
             </TableCell>
             <TableCell className="text-right space-x-2">
-              <Button
-                onClick={() => onEdit(vehicle)}
-                variant="ghost"
-                size="sm"
-              >
-                Edit
-              </Button>
-              <Button
-                onClick={() => handleDispose(vehicle)}
-                variant="ghost"
-                size="sm"
-              >
-                Dispose
-              </Button>
+              {vehicle.status !== 'disposed' && (
+                <>
+                  <Button
+                    onClick={() => onEdit(vehicle)}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    onClick={() => handleDispose(vehicle)}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    Dispose
+                  </Button>
+                </>
+              )}
             </TableCell>
           </TableRow>
         ))}

@@ -1,11 +1,11 @@
 // Trip Module - Defined per trip-scheduling-module.md
 import { useState, useEffect } from 'react';
-import { Trip, Vehicle, Driver } from '../types';
+import { Trip, Vehicle, Driver, Maintenance } from '../types';
 import TripTable from './TripTable';
 import TripForm from './TripForm';
 import Modal from './Modal';
 import { Card, Button } from './ui';
-import { vehicleStorage, driverStorage } from '../storage';
+import { vehicleStorage, driverStorage, maintenanceStorage } from '../storage';
 import { tripService } from '../services/supabaseService';
 import { notificationService } from '../services/notificationService';
 import { auditLogService } from '../services/auditLogService';
@@ -14,6 +14,7 @@ export default function TripModule() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
   const [editingTrip, setEditingTrip] = useState<Trip | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,18 +24,21 @@ export default function TripModule() {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [tripsData, vehiclesData, driversData] = await Promise.all([
+        const [tripsData, vehiclesData, driversData, maintenancesData] = await Promise.all([
           tripService.getAll(),
           vehicleStorage.getAll(),
           driverStorage.getAll(),
+          maintenanceStorage.getAll(),
         ]);
         setTrips(tripsData);
         setVehicles(vehiclesData);
         setDrivers(driversData);
+        setMaintenances(maintenancesData);
         console.log('Loaded data for trip module:', {
           trips: tripsData.length,
           vehicles: vehiclesData.length,
           drivers: driversData.length,
+          maintenances: maintenancesData.length,
         });
       } catch (error) {
         console.error('Error loading trip data:', error);
@@ -325,6 +329,7 @@ export default function TripModule() {
           initialData={editingTrip}
           vehicles={vehicles}
           drivers={drivers}
+          maintenances={maintenances}
         />
       </Modal>
     </div>

@@ -22,6 +22,8 @@ export default function VehicleDisposalModule() {
   const [isEditRequestModalOpen, setIsEditRequestModalOpen] = useState(false);
   const [isAuctionDetailsModalOpen, setIsAuctionDetailsModalOpen] = useState(false);
   const [selectedAuctionForDetails, setSelectedAuctionForDetails] = useState<DisposalAuction | undefined>();
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectingRequest, setRejectingRequest] = useState<DisposalRequest | undefined>();
 
   // Format number with thousand separators
   const formatNumber = (num: number, decimals: number = 2): string => {
@@ -251,6 +253,67 @@ export default function VehicleDisposalModule() {
             />
           </div>
         </div>
+
+        {/* Approval/Rejection Information (read-only, only shown if exists) */}
+        {initialData && (initialData.approval_status === 'approved' || initialData.approval_status === 'rejected') && (
+          <div className="border-t border-border-muted pt-4 mt-2">
+            <h4 className="text-sm font-semibold text-text-primary mb-3">
+              {initialData.approval_status === 'approved' ? 'Approval Information' : 'Rejection Information'}
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
+              {initialData.approval_status === 'approved' && (
+                <>
+                  <Input
+                    label="Approved By"
+                    name="approved_by"
+                    value={initialData.approved_by || 'N/A'}
+                    disabled
+                    readOnly
+                  />
+                  <Input
+                    label="Approval Date"
+                    name="approval_date"
+                    type="datetime-local"
+                    value={initialData.approval_date ? new Date(initialData.approval_date).toISOString().slice(0, 16) : ''}
+                    disabled
+                    readOnly
+                  />
+                </>
+              )}
+              {initialData.approval_status === 'rejected' && (
+                <>
+                  <Input
+                    label="Rejected By"
+                    name="rejected_by"
+                    value={initialData.rejected_by || 'N/A'}
+                    disabled
+                    readOnly
+                  />
+                  <Input
+                    label="Rejection Date"
+                    name="rejection_date"
+                    type="datetime-local"
+                    value={initialData.rejection_date ? new Date(initialData.rejection_date).toISOString().slice(0, 16) : ''}
+                    disabled
+                    readOnly
+                  />
+                  {initialData.rejection_reason && (
+                    <div className="col-span-2">
+                      <Textarea
+                        label="Rejection Reason"
+                        name="rejection_reason_display"
+                        value={initialData.rejection_reason}
+                        disabled
+                        readOnly
+                        rows={3}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Actions: Submit Request (primary, submit) */}
         <div className="flex justify-end gap-3">
@@ -533,6 +596,59 @@ export default function VehicleDisposalModule() {
     );
   };
 
+  // Reject Request Form - for entering rejection reason
+  const RejectRequestForm = ({ request, onSubmit, onClose }: any) => {
+    const [reason, setReason] = useState('');
+    const vehicle = vehicles.find(v => v.id === request?.vehicle_id);
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!reason.trim()) {
+        alert('Please provide a rejection reason');
+        return;
+      }
+      onSubmit(reason);
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-accent-soft border border-border-muted rounded-lg p-4 mb-4">
+          <h4 className="text-sm font-semibold text-text-primary mb-2">Disposal Request</h4>
+          {request && vehicle && (
+            <div className="space-y-1">
+              <p className="text-sm text-text-secondary">
+                <span className="font-medium">Disposal Number:</span> {request.disposal_number}
+              </p>
+              <p className="text-sm text-text-secondary">
+                <span className="font-medium">Vehicle:</span> {vehicle.plate_number}{vehicle.conduction_number ? ` (${vehicle.conduction_number})` : ''} - {vehicle.make} {vehicle.model}
+              </p>
+              <p className="text-sm text-text-secondary">
+                <span className="font-medium">Reason:</span> {request.disposal_reason.replace('_', ' ')}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <Textarea
+            label={<>Rejection Reason <span className="text-red-600">*</span></>}
+            name="rejection_reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            required
+            rows={4}
+            placeholder="Please provide a detailed reason for rejecting this disposal request..."
+          />
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <Button type="button" onClick={onClose} variant="secondary">Cancel</Button>
+          <Button type="submit" variant="danger">Reject Request</Button>
+        </div>
+      </form>
+    );
+  };
+
   // Bid Submission Form - per markdown Bid Submission Form section (6 fields)
   const BidSubmissionForm = ({ auction, onSubmit, onClose }: any) => {
     const currentHighestBid = bids.filter(b => b.auction_id === auction.id).reduce((max, b) => Math.max(max, b.bid_amount), 0);
@@ -676,9 +792,18 @@ export default function VehicleDisposalModule() {
         return;
       }
 
+      // Get current user ID
+      const userId = localStorage.getItem('user_id');
+      if (!userId) {
+        notificationService.error('Error', 'User not authenticated. Please log in again.');
+        return;
+      }
+
       const updated = await disposalService.updateRequest(id, {
         approval_status: 'approved',
         status: 'listed',
+        approved_by: userId,
+        approval_date: new Date().toISOString(),
       });
       setDisposalRequests(disposalRequests.map(r => r.id === updated.id ? updated : r));
       
@@ -714,6 +839,67 @@ export default function VehicleDisposalModule() {
       console.error('Failed to approve disposal request:', error);
       notificationService.error('Failed to Approve', error.message || 'Unable to approve request.');
       alert(error.message || 'Failed to approve disposal request. Please try again.');
+    }
+  };
+
+  // Action: Reject Request (danger)
+  const handleRejectRequest = async (reason: string) => {
+    try {
+      if (!rejectingRequest) {
+        notificationService.error('Error', 'No request selected');
+        return;
+      }
+
+      // Get current user ID
+      const userId = localStorage.getItem('user_id');
+      if (!userId) {
+        notificationService.error('Error', 'User not authenticated. Please log in again.');
+        return;
+      }
+
+      const updated = await disposalService.updateRequest(rejectingRequest.id, {
+        approval_status: 'rejected',
+        rejection_reason: reason,
+        rejected_by: userId,
+        rejection_date: new Date().toISOString(),
+      });
+      setDisposalRequests(disposalRequests.map(r => r.id === updated.id ? updated : r));
+      
+      // Update vehicle status back to active
+      try {
+        await vehicleService.update(rejectingRequest.vehicle_id, { status: 'active' });
+        
+        // Update local vehicles state
+        setVehicles(vehicles.map(v => 
+          v.id === rejectingRequest.vehicle_id ? { ...v, status: 'active' } : v
+        ));
+        
+        // Dispatch event to update vehicles in other components
+        window.dispatchEvent(new CustomEvent('vehiclesUpdated', { 
+          detail: vehicles.map(v => 
+            v.id === rejectingRequest.vehicle_id ? { ...v, status: 'active' } : v
+          )
+        }));
+      } catch (vehicleError: any) {
+        console.error('Failed to update vehicle status:', vehicleError);
+        // Continue with success notification even if vehicle update fails
+      }
+      
+      setIsRejectModalOpen(false);
+      setRejectingRequest(undefined);
+      
+      notificationService.success(
+        'Request Rejected',
+        `Disposal request ${rejectingRequest.disposal_number} has been rejected and vehicle returned to active status`
+      );
+      await auditLogService.createLog(
+        'Disposal Request Rejected',
+        `Rejected disposal request ${rejectingRequest.disposal_number}: ${reason}`
+      );
+    } catch (error: any) {
+      console.error('Failed to reject disposal request:', error);
+      notificationService.error('Failed to Reject', error.message || 'Unable to reject request.');
+      alert(error.message || 'Failed to reject disposal request. Please try again.');
     }
   };
 
@@ -1083,7 +1269,10 @@ export default function VehicleDisposalModule() {
                         </td>
                         <td className="px-4 py-3 text-right text-sm space-x-2">
                           {request.approval_status === 'pending' && (
-                            <Button size="sm" variant="primary" onClick={() => handleApproveRequest(request.id)}>Approve</Button>
+                            <>
+                              <Button size="sm" variant="primary" onClick={() => handleApproveRequest(request.id)}>Approve</Button>
+                              <Button size="sm" variant="danger" onClick={() => { setRejectingRequest(request); setIsRejectModalOpen(true); }}>Reject</Button>
+                            </>
                           )}
                           {request.approval_status === 'approved' && !auction && (
                             <Button size="sm" variant="primary" onClick={() => { setSelectedRequest(request); setIsAuctionModalOpen(true); }}>Create Auction</Button>
@@ -1217,6 +1406,20 @@ export default function VehicleDisposalModule() {
           size="large"
         >
           <AuctionDetailsView auction={selectedAuctionForDetails} />
+        </Modal>
+      )}
+
+      {rejectingRequest && (
+        <Modal 
+          isOpen={isRejectModalOpen} 
+          onClose={() => { setIsRejectModalOpen(false); setRejectingRequest(undefined); }} 
+          title="Reject Disposal Request"
+        >
+          <RejectRequestForm 
+            request={rejectingRequest} 
+            onSubmit={handleRejectRequest} 
+            onClose={() => { setIsRejectModalOpen(false); setRejectingRequest(undefined); }} 
+          />
         </Modal>
       )}
         </>

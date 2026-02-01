@@ -163,7 +163,7 @@ export const maintenanceStorage = {
     }
   },
 
-  async save(maintenance: Maintenance): Promise<Maintenance> {
+  async save(maintenance: Omit<Maintenance, 'id'>): Promise<Maintenance> {
     try {
       const { data, error } = await supabase
         .from('maintenance')
@@ -206,6 +206,20 @@ export const maintenanceStorage = {
       if (error) throw error;
     } catch (error) {
       console.error('Error marking maintenance as completed:', error);
+      throw error;
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('maintenance')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting maintenance:', error);
       throw error;
     }
   },

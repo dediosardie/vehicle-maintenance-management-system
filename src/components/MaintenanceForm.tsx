@@ -5,7 +5,7 @@ import { Input, Select, Textarea, Button } from './ui';
 interface MaintenanceFormProps {
   onSchedule: (maintenance: Omit<Maintenance, 'id'>) => void;
   onUpdate?: (maintenance: Maintenance) => void;
-  vehicles: Array<{ id: string; plate_number: string; conduction_number?: string }>;
+  vehicles: Array<{ id: string; plate_number: string; conduction_number?: string; model: string; make: string }>;
   initialData?: Maintenance;
 }
 
@@ -70,11 +70,15 @@ export default function MaintenanceForm({ onSchedule, onUpdate, vehicles, initia
             required
           >
             <option value="">Select a vehicle</option>
-            {vehicles.map((vehicle) => (
-              <option key={vehicle.id} value={vehicle.id}>
-                {vehicle.plate_number}{(vehicle as any).conduction_number ? ` (${(vehicle as any).conduction_number})` : ''}
-              </option>
-            ))}
+            {vehicles.map((vehicle) => {
+              const identifier = vehicle.plate_number || vehicle.conduction_number || 'Unknown';
+              const displayText = `${identifier} - ${vehicle.make} ${vehicle.model}`;
+              return (
+                <option key={vehicle.id} value={vehicle.id}>
+                  {displayText}
+                </option>
+              );
+            })}
           </Select>
         </div>
 

@@ -15,6 +15,7 @@ export default function VehicleModule() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isViewOnly, setIsViewOnly] = useState(false);
 
   useEffect(() => {
     loadVehicles();
@@ -24,17 +25,99 @@ export default function VehicleModule() {
     window.dispatchEvent(new CustomEvent('vehiclesUpdated', { detail: vehicles }));
   }, [vehicles]);
 
+  // Listen for maintenance status changes
+  useEffect(() => {
+    const handleMaintenanceStatusChange = ((event: CustomEvent) => {
+      const { vehicleId, status } = event.detail;
+      setVehicles(prevVehicles => 
+        prevVehicles.map(v => 
+          v.id === vehicleId ? { ...v, status: status as Vehicle['status'] } : v
+        )
+      );
+    }) as EventListener;
+
+    window.addEventListener('maintenanceStatusChanged', handleMaintenanceStatusChange);
+    return () => window.removeEventListener('maintenanceStatusChanged', handleMaintenanceStatusChange);
+  }, []);
+
   const loadVehicles = async () => {
     try {
       setIsLoading(true);
       setError(null);
       const data = await vehicleService.getAll();
-      setVehicles(data);
+      
+      // Check and sync vehicle status with disposal requests and maintenance records
+      const updatedVehicles = await syncVehicleStatuses(data);
+      setVehicles(updatedVehicles);
     } catch (error) {
       console.error('Error loading vehicles:', error);
       setError('Failed to load vehicles. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Sync vehicle statuses with disposal requests and maintenance records
+  const syncVehicleStatuses = async (vehicles: Vehicle[]): Promise<Vehicle[]> => {
+    try {
+      // Fetch all disposal requests with approval_status 'approved'
+      const disposalRequests = await disposalService.getAllRequests();
+      const approvedDisposals = disposalRequests.filter(dr => dr.approval_status === 'approved');
+      const disposedVehicleIds = new Set(approvedDisposals.map(dr => dr.vehicle_id));
+
+      // Fetch all maintenance records with status 'pending'
+      const { supabase } = await import('../supabaseClient');
+      const { data: maintenanceRecords } = await supabase
+        .from('maintenance')
+        .select('vehicle_id, status')
+        .eq('status', 'pending');
+      
+      const maintenanceVehicleIds = new Set(
+        (maintenanceRecords || []).map((m: any) => m.vehicle_id)
+      );
+
+      // Update vehicle statuses and track changes
+      const vehiclesToUpdate: { id: string; status: Vehicle['status'] }[] = [];
+      const updatedVehicles = vehicles.map(vehicle => {
+        let newStatus = vehicle.status;
+        let shouldUpdate = false;
+
+        // Priority 1: Check if vehicle should be disposed
+        if (disposedVehicleIds.has(vehicle.id) && vehicle.status !== 'disposed') {
+          newStatus = 'disposed';
+          shouldUpdate = true;
+        }
+        // Priority 2: Check if vehicle should be in maintenance (only if not disposed)
+        else if (maintenanceVehicleIds.has(vehicle.id) && vehicle.status !== 'maintenance' && vehicle.status !== 'disposed') {
+          newStatus = 'maintenance';
+          shouldUpdate = true;
+        }
+
+        if (shouldUpdate) {
+          vehiclesToUpdate.push({ id: vehicle.id, status: newStatus });
+          return { ...vehicle, status: newStatus };
+        }
+        
+        return vehicle;
+      });
+
+      // Batch update vehicles in database if needed
+      if (vehiclesToUpdate.length > 0) {
+        console.log(`Syncing ${vehiclesToUpdate.length} vehicle statuses...`);
+        await Promise.all(
+          vehiclesToUpdate.map(({ id, status }) => 
+            vehicleService.update(id, { status }).catch(err => {
+              console.error(`Failed to update vehicle ${id} status:`, err);
+            })
+          )
+        );
+      }
+
+      return updatedVehicles;
+    } catch (error) {
+      console.error('Error syncing vehicle statuses:', error);
+      // Return original vehicles if sync fails
+      return vehicles;
     }
   };
 
@@ -198,17 +281,20 @@ export default function VehicleModule() {
 
   const handleEditVehicle = (vehicle: Vehicle) => {
     setEditingVehicle(vehicle);
+    setIsViewOnly(vehicle.status === 'disposed');
     setIsModalOpen(true);
   };
 
   const handleAddVehicle = () => {
     setEditingVehicle(undefined);
+    setIsViewOnly(false);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingVehicle(undefined);
+    setIsViewOnly(false);
   };
 
   // Filter vehicles based on search query
@@ -346,12 +432,13 @@ export default function VehicleModule() {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}
+        title={isViewOnly ? 'View Vehicle (Disposed)' : editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}
       >
         <VehicleForm
           onSave={handleSaveVehicle}
           onUpdate={handleUpdateVehicle}
           initialData={editingVehicle}
+          viewOnly={isViewOnly}
         />
       </Modal>
     </div>

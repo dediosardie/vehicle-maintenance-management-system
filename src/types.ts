@@ -206,6 +206,8 @@ export interface DisposalRequest {
   approved_by?: string;
   approval_date?: string;
   rejection_reason?: string;
+  rejected_by?: string;
+  rejection_date?: string;
   status: 'pending_approval' | 'listed' | 'bidding_open' | 'sold' | 'transferred' | 'cancelled';
   created_at: string;
   updated_at: string;
