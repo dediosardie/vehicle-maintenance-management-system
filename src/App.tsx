@@ -618,7 +618,7 @@ function App() {
               )}
               <div className="space-y-1">
                 {accessibleNavItems
-                  .filter(item => ['reporting', 'vehicles', 'drivers', 'trips', 'live_tracking', 'maintenance', 'fuel', 'incidents', 'compliance', 'disposal'].includes(item.id))
+                  .filter(item => ['reporting', 'vehicles', 'drivers', 'trips', 'maintenance', 'fuel', 'incidents', 'compliance', 'disposal'].includes(item.id))
                   .map((item) => (
                     <button
                       key={item.id}
