@@ -13,6 +13,8 @@ export default function DriverForm({ onSave, onUpdate, initialData }: DriverForm
     full_name: initialData?.full_name || '',
     license_number: initialData?.license_number || '',
     license_expiry: initialData?.license_expiry || '',
+    phone: initialData?.phone || '',
+    email: initialData?.email || '',
     status: initialData?.status || 'active',
   });
 
@@ -22,6 +24,8 @@ export default function DriverForm({ onSave, onUpdate, initialData }: DriverForm
         full_name: initialData.full_name,
         license_number: initialData.license_number,
         license_expiry: initialData.license_expiry,
+        phone: initialData.phone || '',
+        email: initialData.email || '',
         status: initialData.status,
       });
     } else {
@@ -29,6 +33,8 @@ export default function DriverForm({ onSave, onUpdate, initialData }: DriverForm
         full_name: '',
         license_number: '',
         license_expiry: '',
+        phone: '',
+        email: '',
         status: 'active',
       });
     }
@@ -77,6 +83,24 @@ export default function DriverForm({ onSave, onUpdate, initialData }: DriverForm
           value={formData.license_expiry}
           onChange={handleChange}
           required
+        />
+
+        <Input
+          label="Phone"
+          type="tel"
+          name="phone"
+          value={formData.phone || ''}
+          onChange={handleChange}
+          placeholder="e.g., +63 912 345 6789"
+        />
+
+        <Input
+          label="Email"
+          type="email"
+          name="email"
+          value={formData.email || ''}
+          onChange={handleChange}
+          placeholder="driver@example.com"
         />
 
         <Select

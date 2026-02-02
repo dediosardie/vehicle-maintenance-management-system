@@ -12,6 +12,7 @@ import VehicleDisposalModule from './components/VehicleDisposalModule';
 import ReportingAnalyticsDashboard from './components/ReportingAnalyticsDashboard';
 import UserModule from './components/UserModule';
 import PageRestrictionModule from './components/PageRestrictionModule';
+import LiveDriverTrackingMap from './components/LiveDriverTrackingMap';
 import LoginPage from './components/LoginPage';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import { ProtectedRoute, RoleBadge } from './components/ProtectedRoute';
@@ -21,7 +22,7 @@ import { authService } from './services/authService';
 import { Module } from './config/rolePermissions';
 import { getRoleDefaultPage, checkRoleAccess } from './utils/roleRedirects';
 
-type ActiveModule = 'vehicles' | 'drivers' | 'maintenance' | 'trips' | 'fuel' | 'incidents' | 'compliance' | 'disposal' | 'reporting' | 'users' | 'page_restrictions';
+type ActiveModule = 'vehicles' | 'drivers' | 'maintenance' | 'trips' | 'fuel' | 'incidents' | 'compliance' | 'disposal' | 'reporting' | 'users' | 'page_restrictions' | 'live_tracking';
 
 function App() {
   const [user, setUser] = useState<any | null>(null);
@@ -111,6 +112,7 @@ function App() {
         '/reports': 'reporting',
         '/trips': 'trips',
         '/vehicles': 'vehicles',
+        '/live-tracking': 'live_tracking',
       };
 
       const targetModule = pathToModule[defaultPage];
@@ -136,6 +138,7 @@ function App() {
         'maintenance': '/maintenance',
         'users': '/users',
         'page_restrictions': '/page-restrictions',
+        'live_tracking': '/live-tracking',
       };
 
       const currentPath = moduleToPat[activeModule];
@@ -269,6 +272,12 @@ function App() {
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
       </svg>
     )},
+    { id: 'live_tracking' as ActiveModule, module: 'trips' as Module, path: '/live-tracking', label: 'Live Tracking', icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    )},
 
     { id: 'users' as ActiveModule, module: 'users' as Module, path: '/users', label: 'Users', icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -350,6 +359,7 @@ function App() {
               {activeModule === 'drivers' && 'Driver Management'}
               {activeModule === 'maintenance' && 'Maintenance'}
               {activeModule === 'trips' && 'Trip Scheduling'}
+              {activeModule === 'live_tracking' && 'Live Driver Tracking'}
               {activeModule === 'fuel' && 'Fuel Tracking'}
               {activeModule === 'incidents' && 'Incidents & Insurance'}
               {activeModule === 'compliance' && 'Compliance Documents'}
@@ -608,7 +618,7 @@ function App() {
               )}
               <div className="space-y-1">
                 {accessibleNavItems
-                  .filter(item => ['reporting', 'vehicles', 'drivers', 'trips', 'maintenance', 'fuel', 'incidents', 'compliance', 'disposal'].includes(item.id))
+                  .filter(item => ['reporting', 'vehicles', 'drivers', 'trips', 'live_tracking', 'maintenance', 'fuel', 'incidents', 'compliance', 'disposal'].includes(item.id))
                   .map((item) => (
                     <button
                       key={item.id}
@@ -749,6 +759,11 @@ function App() {
             {activeModule === 'page_restrictions' && (
               <ProtectedRoute pagePath="/page-restrictions">
                 <PageRestrictionModule />
+              </ProtectedRoute>
+            )}
+            {activeModule === 'live_tracking' && (
+              <ProtectedRoute pagePath="/live-tracking">
+                <LiveDriverTrackingMap />
               </ProtectedRoute>
             )}
           </div>

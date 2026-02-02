@@ -37,6 +37,7 @@ export default function DriverTable({ drivers, onSuspend, onEdit, onDelete }: Dr
             <TableRow>
               <TableHead>Full Name</TableHead>
               <TableHead>License Number</TableHead>
+              <TableHead>Phone</TableHead>
               <TableHead>License Expiry</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -54,6 +55,9 @@ export default function DriverTable({ drivers, onSuspend, onEdit, onDelete }: Dr
                 </TableCell>
                 <TableCell className="font-mono">
                   {driver.license_number}
+                </TableCell>
+                <TableCell>
+                  {driver.phone || '—'}
                 </TableCell>
                 <TableCell>
                   {driver.license_expiry}

@@ -36,6 +36,8 @@ export interface Driver {
   full_name: string;
   license_number: string;
   license_expiry: string;
+  phone?: string;
+  email?: string;
   status: 'active' | 'suspended';
   created_at?: string;
   updated_at?: string;
