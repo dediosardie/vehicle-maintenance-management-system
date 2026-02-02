@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { Trip, Vehicle, Driver, Maintenance } from '../types';
 import TripTable from './TripTable';
 import TripForm from './TripForm';
-import DriverTripTracker from './DriverTripTracker';
 import Modal from './Modal';
+import RouteMapModal from './RouteMapModal';
 import { Card, Button } from './ui';
 import { vehicleStorage, driverStorage, maintenanceStorage } from '../storage';
 import { tripService } from '../services/supabaseService';
@@ -21,6 +21,8 @@ export default function TripModule() {
   const [editingTrip, setEditingTrip] = useState<Trip | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [viewingRouteTrip, setViewingRouteTrip] = useState<Trip | undefined>(undefined);
+  const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const { userRole } = useRoleAccess();
 
@@ -205,7 +207,8 @@ export default function TripModule() {
 
   // Action: View Route Map (secondary, displays visual route)
   const handleViewRoute = (trip: Trip) => {
-    alert(`View route for trip from ${trip.origin} to ${trip.destination}\n(Route visualization would be implemented here)`);
+    setViewingRouteTrip(trip);
+    setIsRouteModalOpen(true);
   };
 
   const handleEditTrip = (trip: Trip) => {
@@ -299,7 +302,7 @@ export default function TripModule() {
       </div>
 
       {/* Active Trip Tracking Section */}
-      {inProgressTrips > 0 && (
+      {/* {inProgressTrips > 0 && (
         <Card>
           <div className="p-6 border-b border-border-muted">
             <h3 className="text-lg font-semibold text-text-primary">Active Trip Tracking</h3>
@@ -318,7 +321,7 @@ export default function TripModule() {
             }
           </div>
         </Card>
-      )}
+      )} */}
 
       {/* Main Content */}
       <Card>
@@ -378,6 +381,18 @@ export default function TripModule() {
           maintenances={maintenances}
         />
       </Modal>
+
+      {/* Route Map Modal */}
+      {viewingRouteTrip && (
+        <RouteMapModal
+          trip={viewingRouteTrip}
+          isOpen={isRouteModalOpen}
+          onClose={() => {
+            setIsRouteModalOpen(false);
+            setViewingRouteTrip(undefined);
+          }}
+        />
+      )}
     </div>
   );
 }

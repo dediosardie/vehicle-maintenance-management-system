@@ -77,10 +77,19 @@ export default function TripTable({
             <tr>
               {/* Columns match Trip Table definition in markdown */}
               <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-text-secondary uppercase tracking-wider">
+                Actions
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                 Vehicle
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                 Driver
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                Distance (km)
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                 Origin
@@ -94,15 +103,9 @@ export default function TripTable({
               <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                 Planned Arrival
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                Distance (km)
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-text-secondary uppercase tracking-wider">
-                Actions
-              </th>
+
+
+
             </tr>
           </thead>
           <tbody className="bg-bg-secondary divide-y divide-border-muted">
@@ -112,24 +115,6 @@ export default function TripTable({
                 className="hover:bg-bg-elevated transition-colors cursor-pointer"
                 onDoubleClick={() => onEdit(trip)}
               >
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                  {getVehicleInfo(trip.vehicle_id)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                  {getDriverInfo(trip.driver_id)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                  {trip.origin}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                  {trip.destination}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                  {new Date(trip.planned_departure).toLocaleString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                  {new Date(trip.planned_arrival).toLocaleString()}
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {/* Status enum(planned, in_progress, completed, cancelled) */}
                   <Badge variant={
@@ -140,9 +125,6 @@ export default function TripTable({
                   }>
                     {trip.status.replace('_', ' ')}
                   </Badge>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
-                  {trip.distance_km.toFixed(1)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                   {/* Actions based on status per markdown */}
@@ -210,6 +192,30 @@ export default function TripTable({
                     </Button>
                   )}
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                  {getVehicleInfo(trip.vehicle_id)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                  {getDriverInfo(trip.driver_id)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                  {trip.distance_km.toFixed(1)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                  {trip.origin}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                  {trip.destination}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                  {new Date(trip.planned_departure).toLocaleString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                  {new Date(trip.planned_arrival).toLocaleString()}
+                </td>
+                
+
+                
               </tr>
             ))}
           </tbody>
