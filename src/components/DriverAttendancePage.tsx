@@ -71,12 +71,19 @@ export default function DriverAttendancePage() {
         return;
       }
 
-      // Request camera access and capture a single frame
+      // Request camera access ONLY - no screen capture, no video recording
+      // This captures a single still image frame only
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: 640, height: 480 },
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        },
+        audio: false // Explicitly no audio recording
       });
 
-      // Create video element to capture the frame
+      // Create temporary video element in memory (not visible to user)
+      // Used only to capture one still frame
       const video = document.createElement('video');
       video.srcObject = mediaStream;
       video.muted = true;
@@ -90,19 +97,20 @@ export default function DriverAttendancePage() {
         };
       });
 
-      // Wait a brief moment for the camera to adjust
+      // Wait briefly for camera to adjust exposure (single frame capture preparation)
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Capture frame to canvas
+      // Capture ONE single still frame to canvas (not a video)
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const context = canvas.getContext('2d');
 
       if (context) {
+        // Draw the single frame
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Convert to blob and file
+        // Convert single frame to image file
         await new Promise<void>((resolve) => {
           canvas.toBlob((blob) => {
             if (blob) {
@@ -115,8 +123,12 @@ export default function DriverAttendancePage() {
         });
       }
 
-      // Stop camera stream after capture is complete
-      mediaStream.getTracks().forEach(track => track.stop());
+      // IMMEDIATELY stop camera stream - no recording happens
+      // Camera is active for less than 1 second total
+      mediaStream.getTracks().forEach(track => {
+        track.stop();
+        console.log('Camera track stopped - no recording');
+      });
       
     } catch (error: any) {
       console.error('Camera access error:', error);
@@ -259,6 +271,9 @@ export default function DriverAttendancePage() {
         {/* Camera Section */}
         <Card className="p-3 bg-bg-secondary border border-border-muted">
           <h2 className="text-xs font-medium text-text-primary mb-2">Capture Photo</h2>
+          <p className="text-[10px] text-text-muted mb-2">
+            🔒 Single image capture only - No video recording
+          </p>
           
           {!capturedImage ? (
             <Button
