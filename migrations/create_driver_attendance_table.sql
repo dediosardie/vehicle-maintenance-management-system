@@ -18,28 +18,16 @@ CREATE INDEX IF NOT EXISTS idx_driver_attendance_date ON driver_attendance(atten
 CREATE INDEX IF NOT EXISTS idx_driver_attendance_action ON driver_attendance(action_type);
 CREATE INDEX IF NOT EXISTS idx_driver_attendance_timestamp ON driver_attendance(timestamp DESC);
 
--- Enable Row Level Security
-ALTER TABLE driver_attendance ENABLE ROW LEVEL SECURITY;
+-- Disable Row Level Security (using custom authentication)
+-- RLS is disabled because this system uses custom authentication, not Supabase Auth
+-- Access control is handled at the application level
+ALTER TABLE driver_attendance DISABLE ROW LEVEL SECURITY;
 
--- Policy: Drivers can view their own attendance records
-CREATE POLICY "Drivers can view own attendance" 
-  ON driver_attendance FOR SELECT 
-  USING (auth.uid() IN (SELECT id FROM drivers WHERE id = driver_id));
-
--- Policy: Drivers can insert their own attendance records
-CREATE POLICY "Drivers can create own attendance" 
-  ON driver_attendance FOR INSERT 
-  WITH CHECK (auth.uid() IN (SELECT id FROM drivers WHERE id = driver_id));
-
--- Policy: Admins and managers can view all attendance records
-CREATE POLICY "Admins can view all attendance" 
-  ON driver_attendance FOR SELECT 
-  USING (auth.uid() IN (SELECT id FROM users WHERE role IN ('admin', 'manager')));
-
--- Policy: Admins can manage all attendance records
-CREATE POLICY "Admins can manage attendance" 
-  ON driver_attendance FOR ALL 
-  USING (auth.uid() IN (SELECT id FROM users WHERE role = 'admin'));
+-- Drop any existing policies (if they exist)
+DROP POLICY IF EXISTS "Drivers can view own attendance" ON driver_attendance;
+DROP POLICY IF EXISTS "Drivers can create own attendance" ON driver_attendance;
+DROP POLICY IF EXISTS "Admins can view all attendance" ON driver_attendance;
+DROP POLICY IF EXISTS "Admins can manage attendance" ON driver_attendance;
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_driver_attendance_updated_at()

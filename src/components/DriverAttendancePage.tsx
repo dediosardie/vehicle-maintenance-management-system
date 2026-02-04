@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { DriverAttendance } from '../types';
 import { attendanceService } from '../services/attendanceService';
 import { authService } from '../services/authService';
+import { supabase } from '../supabaseClient';
 import { Button, Card } from './ui';
 
 export default function DriverAttendancePage() {
@@ -27,10 +28,43 @@ export default function DriverAttendancePage() {
 
   const loadCurrentDriver = async () => {
     try {
-      const user = await authService.getCurrentUser();
-      if (user) {
-        setCurrentDriver(user);
+      const { user, error } = await authService.getCurrentUser();
+      
+      if (error) {
+        console.error('Failed to get current user:', error);
+        setError('Failed to load driver information: ' + error);
+        return;
       }
+      
+      if (!user) {
+        console.warn('No user found in session');
+        setError('No active session. Please log in again.');
+        return;
+      }
+
+      console.log('Current user loaded:', user);
+
+      // Fetch driver record associated with this user
+      const { data: driver, error: driverError } = await supabase
+        .from('drivers')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (driverError) {
+        console.error('Failed to fetch driver record:', driverError);
+        setError('Failed to load driver information: ' + driverError.message);
+        return;
+      }
+
+      if (!driver) {
+        console.error('No driver record found for user:', user.id);
+        setError('No driver profile linked to your account. Please contact administrator.');
+        return;
+      }
+
+      console.log('Driver record loaded:', driver);
+      setCurrentDriver(driver);
     } catch (error) {
       console.error('Failed to load current driver:', error);
       setError('Failed to load driver information');
@@ -38,24 +72,34 @@ export default function DriverAttendancePage() {
   };
 
   const checkTodayStatus = async () => {
-    if (!currentDriver) return;
+    if (!currentDriver || !currentDriver.id) {
+      console.warn('No driver ID available for status check');
+      return;
+    }
     
     try {
+      console.log('Checking today status for driver:', currentDriver.id);
       const hasLogin = await attendanceService.hasActiveLogin(currentDriver.id);
       setHasActiveLogin(hasLogin);
     } catch (error) {
       console.error('Failed to check login status:', error);
+      setError('Failed to check login status');
     }
   };
 
   const loadAttendanceHistory = async () => {
-    if (!currentDriver) return;
+    if (!currentDriver || !currentDriver.id) {
+      console.warn('No driver ID available for attendance history');
+      return;
+    }
     
     try {
+      console.log('Loading attendance history for driver:', currentDriver.id);
       const records = await attendanceService.getDriverAttendance(currentDriver.id);
       setAttendanceHistory(records);
     } catch (error) {
       console.error('Failed to load attendance history:', error);
+      setError('Failed to load attendance history');
     }
   };
 
@@ -180,8 +224,8 @@ export default function DriverAttendancePage() {
   };
 
   const handleAttendance = async (actionType: 'login' | 'logout') => {
-    if (!currentDriver) {
-      setError('Driver information not available');
+    if (!currentDriver || !currentDriver.id) {
+      setError('Driver information not available. Please log in again.');
       return;
     }
 
@@ -194,6 +238,8 @@ export default function DriverAttendancePage() {
     setError(null);
 
     try {
+      console.log(`Recording ${actionType} for driver:`, currentDriver.id);
+      
       // Get location
       const location = await getLocation();
 
