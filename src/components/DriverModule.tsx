@@ -6,13 +6,14 @@ import Modal from './Modal';
 import { driverStorage } from '../storage';
 import { notificationService } from '../services/notificationService';
 import { auditLogService } from '../services/auditLogService';
-import { Card, Button } from './ui';
+import { Card, Button, Input } from './ui';
 
 export default function DriverModule() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [editingDriver, setEditingDriver] = useState<Driver | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     // Load drivers from storage on mount
@@ -152,6 +153,20 @@ export default function DriverModule() {
     setEditingDriver(undefined);
   };
 
+  // Filter drivers based on search query
+  const filteredDrivers = drivers.filter(driver => {
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase();
+    return (
+      driver.full_name.toLowerCase().includes(query) ||
+      driver.license_number.toLowerCase().includes(query) ||
+      (driver.phone && driver.phone.toLowerCase().includes(query)) ||
+      (driver.email && driver.email.toLowerCase().includes(query)) ||
+      driver.status.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -160,7 +175,7 @@ export default function DriverModule() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-text-secondary">Total Drivers</p>
-              <p className="text-2xl font-bold text-text-primary mt-1">{drivers.length}</p>
+              <p className="text-2xl font-bold text-text-primary mt-1">{filteredDrivers.length}</p>
             </div>
             <div className="w-12 h-12 bg-accent-soft rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,7 +188,7 @@ export default function DriverModule() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-text-secondary">Active</p>
-              <p className="text-2xl font-bold text-emerald-500 mt-1">{drivers.filter(d => d.status === 'active').length}</p>
+              <p className="text-2xl font-bold text-emerald-500 mt-1">{filteredDrivers.filter(d => d.status === 'active').length}</p>
             </div>
             <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,7 +201,7 @@ export default function DriverModule() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-text-secondary">Suspended</p>
-              <p className="text-2xl font-bold text-red-500 mt-1">{drivers.filter(d => d.status === 'suspended').length}</p>
+              <p className="text-2xl font-bold text-red-500 mt-1">{filteredDrivers.filter(d => d.status === 'suspended').length}</p>
             </div>
             <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,18 +215,32 @@ export default function DriverModule() {
       {/* Main Content Card */}
       <Card>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-4 border-b border-border-muted">
-          <div>
+          <div className="flex-1">
             <h2 className="text-xl font-semibold text-text-primary">Driver Management</h2>
             <p className="text-sm text-text-secondary mt-1">Manage driver records and licensing</p>
           </div>
-          <Button onClick={handleAddDriver} variant="primary"
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Input
+                type="search"
+                placeholder="Search drivers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-64 pl-10"
+              />
+              <svg className="absolute left-3 top-2.5 w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <Button onClick={handleAddDriver} variant="primary"
               size="md"
               className="inline-flex items-center">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Driver
-          </Button>
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Driver
+            </Button>
+          </div>
         </div>
         
         {isLoading ? (
@@ -223,7 +252,7 @@ export default function DriverModule() {
           </div>
         ) : (
           <div className="p-6">
-            <DriverTable drivers={drivers} onSuspend={handleSuspendDriver} onEdit={handleEditDriver} onDelete={handleDeleteDriver} />
+            <DriverTable drivers={filteredDrivers} onSuspend={handleSuspendDriver} onEdit={handleEditDriver} onDelete={handleDeleteDriver} />
           </div>
         )}
       </Card>

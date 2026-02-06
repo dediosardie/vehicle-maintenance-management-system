@@ -5,7 +5,7 @@ import TripTable from './TripTable';
 import TripForm from './TripForm';
 import Modal from './Modal';
 import RouteMapModal from './RouteMapModal';
-import { Card, Button } from './ui';
+import { Card, Button, Input } from './ui';
 import { vehicleStorage, driverStorage, maintenanceStorage } from '../storage';
 import { tripService } from '../services/supabaseService';
 import { notificationService } from '../services/notificationService';
@@ -25,6 +25,7 @@ export default function TripModule() {
   const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const { userRole } = useRoleAccess();
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Get current user email
   useEffect(() => {
@@ -227,12 +228,30 @@ export default function TripModule() {
   };
 
   // Filter trips for driver role - only show trips assigned to them
-  const filteredTrips = userRole?.role === 'driver' && currentUserEmail
+  const roleFilteredTrips = userRole?.role === 'driver' && currentUserEmail
     ? trips.filter(trip => {
         const driver = drivers.find(d => d.id === trip.driver_id);
         return driver?.email === currentUserEmail;
       })
     : trips;
+
+  // Apply search filter on top of role filter
+  const filteredTrips = roleFilteredTrips.filter(trip => {
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase();
+    const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
+    const driver = drivers.find(d => d.id === trip.driver_id);
+    
+    return (
+      trip.origin.toLowerCase().includes(query) ||
+      trip.destination.toLowerCase().includes(query) ||
+      trip.status.toLowerCase().includes(query) ||
+      (vehicle && vehicle.plate_number.toLowerCase().includes(query)) ||
+      (vehicle && vehicle.conduction_number && vehicle.conduction_number.toLowerCase().includes(query)) ||
+      (driver && driver.full_name.toLowerCase().includes(query))
+    );
+  });
 
   // Calculate stats based on filtered trips
   const plannedTrips = filteredTrips.filter(t => t.status === 'planned').length;
@@ -327,21 +346,35 @@ export default function TripModule() {
       <Card>
         <div className="p-6 border-b border-border-muted">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
+            <div className="flex-1">
               <h2 className="text-xl font-semibold text-text-primary">Trip Schedule</h2>
               <p className="text-sm text-text-secondary mt-1">Manage routes and monitor trip status</p>
             </div>
-            <Button
-              onClick={handleAddTrip}
-              variant="primary"
-              size="md"
-              className="inline-flex items-center"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Schedule Trip
-            </Button>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Input
+                  type="search"
+                  placeholder="Search trips..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-64 pl-10"
+                />
+                <svg className="absolute left-3 top-2.5 w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <Button
+                onClick={handleAddTrip}
+                variant="primary"
+                size="md"
+                className="inline-flex items-center"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Schedule Trip
+              </Button>
+            </div>
           </div>
         </div>
 

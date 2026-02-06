@@ -3,7 +3,7 @@ import { Maintenance, Vehicle } from '../types';
 import MaintenanceTable from './MaintenanceTable';
 import MaintenanceForm from './MaintenanceForm';
 import Modal from './Modal';
-import { Card, Button } from './ui';
+import { Card, Button, Input } from './ui';
 import { maintenanceStorage, vehicleStorage } from '../storage';
 import { notificationService } from '../services/notificationService';
 import { auditLogService } from '../services/auditLogService';
@@ -15,6 +15,7 @@ export default function MaintenanceModule() {
   const [editingMaintenance, setEditingMaintenance] = useState<Maintenance | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     // Load maintenances and vehicles from storage on mount
@@ -184,6 +185,25 @@ export default function MaintenanceModule() {
     setEditingMaintenance(undefined);
   };
 
+  // Filter maintenances based on search query
+  const filteredMaintenances = maintenances.filter(maintenance => {
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase();
+    const vehicle = vehicles.find(v => v.id === maintenance.vehicle_id);
+    
+    if (!vehicle) return false;
+    
+    return (
+      vehicle.plate_number.toLowerCase().includes(query) ||
+      vehicle.make.toLowerCase().includes(query) ||
+      vehicle.model.toLowerCase().includes(query) ||
+      (vehicle.conduction_number && vehicle.conduction_number.toLowerCase().includes(query)) ||
+      maintenance.maintenance_type.toLowerCase().includes(query) ||
+      maintenance.status.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -192,7 +212,7 @@ export default function MaintenanceModule() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-text-secondary">Total Records</p>
-              <p className="text-2xl font-bold text-text-primary mt-1">{maintenances.length}</p>
+              <p className="text-2xl font-bold text-text-primary mt-1">{filteredMaintenances.length}</p>
             </div>
             <div className="w-12 h-12 bg-accent-soft rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,7 +225,7 @@ export default function MaintenanceModule() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-text-secondary">Pending</p>
-              <p className="text-2xl font-bold text-amber-600 mt-1">{maintenances.filter(m => m.status === 'pending').length}</p>
+              <p className="text-2xl font-bold text-amber-600 mt-1">{filteredMaintenances.filter(m => m.status === 'pending').length}</p>
             </div>
             <div className="w-12 h-12 bg-accent-soft rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,7 +238,7 @@ export default function MaintenanceModule() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-text-secondary">Completed</p>
-              <p className="text-2xl font-bold text-emerald-600 mt-1">{maintenances.filter(m => m.status === 'completed').length}</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-1">{filteredMaintenances.filter(m => m.status === 'completed').length}</p>
             </div>
             <div className="w-12 h-12 bg-accent-soft rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,21 +252,35 @@ export default function MaintenanceModule() {
       {/* Main Content Card */}
       <Card>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-4 border-b border-border-muted">
-          <div>
+          <div className="flex-1">
             <h2 className="text-xl font-semibold text-text-primary">Maintenance Schedule</h2>
             <p className="text-sm text-text-secondary mt-1">Track and manage vehicle maintenance</p>
           </div>
-          <Button
-            onClick={handleAddMaintenance}
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Input
+                type="search"
+                placeholder="Search maintenance..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-64 pl-10"
+              />
+              <svg className="absolute left-3 top-2.5 w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <Button
+              onClick={handleAddMaintenance}
               variant="primary"
               size="md"
               className="inline-flex items-center"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Schedule Maintenance
-          </Button>
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Schedule Maintenance
+            </Button>
+          </div>
         </div>
         
         {isLoading ? (
@@ -259,7 +293,7 @@ export default function MaintenanceModule() {
         ) : (
           <div className="p-6">
             <MaintenanceTable 
-              maintenances={maintenances} 
+              maintenances={filteredMaintenances} 
               vehicles={vehicles}
               onMarkCompleted={handleMarkCompleted}
               onEdit={handleEditMaintenance}

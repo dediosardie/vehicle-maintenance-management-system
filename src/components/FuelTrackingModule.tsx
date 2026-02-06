@@ -6,7 +6,7 @@ import FuelTransactionForm from './FuelTransactionForm';
 import Modal from './Modal';
 import FuelEfficiencyReport from './FuelEfficiencyReport';
 import OpenAIConfigModal from './OpenAIConfigModal';
-import { Card, Button } from './ui';
+import { Card, Button, Input } from './ui';
 import { fuelService, vehicleService, driverService } from '../services/supabaseService';
 import { notificationService } from '../services/notificationService';
 import { auditLogService } from '../services/auditLogService';
@@ -34,6 +34,7 @@ export default function FuelTrackingModule() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const { userRole } = useRoleAccess();
+  const [searchQuery, setSearchQuery] = useState('');
   
   // AI Analysis state
   const [showEfficiencyReport, setShowEfficiencyReport] = useState(false);
@@ -250,12 +251,29 @@ export default function FuelTrackingModule() {
   };
 
   // Filter transactions for driver role - only show transactions assigned to them
-  const filteredTransactions = userRole?.role === 'driver' && currentUserEmail
+  const roleFilteredTransactions = userRole?.role === 'driver' && currentUserEmail
     ? transactions.filter(transaction => {
         const driver = drivers.find(d => d.id === transaction.driver_id);
         return driver?.email === currentUserEmail;
       })
     : transactions;
+
+  // Apply search filter on top of role filter
+  const filteredTransactions = roleFilteredTransactions.filter(transaction => {
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase();
+    const vehicle = vehicles.find(v => v.id === transaction.vehicle_id);
+    const driver = drivers.find(d => d.id === transaction.driver_id);
+    
+    return (
+      (vehicle && vehicle.plate_number.toLowerCase().includes(query)) ||
+      (vehicle && vehicle.conduction_number && vehicle.conduction_number.toLowerCase().includes(query)) ||
+      (vehicle && vehicle.make.toLowerCase().includes(query)) ||
+      (vehicle && vehicle.model.toLowerCase().includes(query)) ||
+      (driver && driver.full_name.toLowerCase().includes(query))
+    );
+  });
 
   // Calculate stats based on filtered transactions
   const totalLiters = filteredTransactions.reduce((sum, t) => sum + t.liters, 0);
@@ -327,11 +345,23 @@ export default function FuelTrackingModule() {
       <Card>
         <div className="p-6 border-b border-border-muted">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
+            <div className="flex-1">
               <h2 className="text-xl font-semibold text-text-primary">Fuel Transactions</h2>
               <p className="text-sm text-text-secondary mt-1">Track fuel usage and monitor efficiency</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Input
+                  type="search"
+                  placeholder="Search transactions..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-64 pl-10"
+                />
+                <svg className="absolute left-3 top-2.5 w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
               {/* Action: View Efficiency Report (secondary) */}
               <Button
                 onClick={handleViewEfficiency}
