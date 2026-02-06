@@ -15,6 +15,7 @@ export default function VehicleTable({ vehicles, onDispose, onEdit, onDelete }: 
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [disposalReason, setDisposalReason] = useState<string>('end_of_life');
   const [currentMileage, setCurrentMileage] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleDispose = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
@@ -32,6 +33,24 @@ export default function VehicleTable({ vehicles, onDispose, onEdit, onDelete }: 
     }
   };
 
+  // Filter vehicles based on search query
+  const filteredVehicles = vehicles.filter((vehicle) => {
+    if (!searchQuery) return true;
+    
+    const searchLower = searchQuery.toLowerCase();
+    const plateNumber = vehicle.plate_number?.toLowerCase() || '';
+    const conductionNumber = vehicle.conduction_number?.toLowerCase() || '';
+    const make = vehicle.make?.toLowerCase() || '';
+    const model = vehicle.model?.toLowerCase() || '';
+    const vin = vehicle.vin?.toLowerCase() || '';
+    
+    return plateNumber.includes(searchLower) ||
+           conductionNumber.includes(searchLower) ||
+           make.includes(searchLower) ||
+           model.includes(searchLower) ||
+           vin.includes(searchLower);
+  });
+
   if (vehicles.length === 0) {
     return (
       <div className="text-center py-12">
@@ -48,6 +67,40 @@ export default function VehicleTable({ vehicles, onDispose, onEdit, onDelete }: 
 
   return (
     <>
+    {/* Search Filter */}
+    <div className="mb-4 px-6 pt-4">
+      <div className="relative max-w-md">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg className="h-5 w-5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <input
+          type="text"
+          placeholder="Search by plate number, conduction number, make, model, VIN..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 bg-bg-elevated border border-border-muted rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-text-primary"
+            title="Clear search"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+      {searchQuery && (
+        <p className="mt-2 text-sm text-text-secondary">
+          Found {filteredVehicles.length} vehicle{filteredVehicles.length !== 1 ? 's' : ''} matching "{searchQuery}"
+        </p>
+      )}
+    </div>
+
     <Table>
       <TableHeader>
         <TableRow>
@@ -67,7 +120,20 @@ export default function VehicleTable({ vehicles, onDispose, onEdit, onDelete }: 
         </TableRow>
       </TableHeader>
       <TableBody>
-        {vehicles.map((vehicle) => (
+        {filteredVehicles.length === 0 && searchQuery ? (
+          <TableRow>
+            <TableCell colSpan={13} className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
+                <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-slate-900 mb-1">No vehicles found</h3>
+              <p className="text-slate-600">Try adjusting your search criteria</p>
+            </TableCell>
+          </TableRow>
+        ) : null}
+        {filteredVehicles.map((vehicle) => (
           <TableRow
             key={vehicle.id}
             className="cursor-pointer"
