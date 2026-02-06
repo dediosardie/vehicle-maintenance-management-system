@@ -84,6 +84,16 @@ export default function FuelTransactionTable({
 
   return (
     <div className="overflow-hidden">
+      <div className="px-6 py-4 bg-bg-elevated">
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Search by plate, conduction no., make, or model"
+          className="w-full max-w-md rounded-md border border-border-muted bg-white px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+          aria-label="Search fuel transactions"
+        />
+      </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-border-muted">
           <thead className="bg-bg-elevated">
